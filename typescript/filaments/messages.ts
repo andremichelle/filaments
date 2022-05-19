@@ -1,4 +1,4 @@
-import {SceneFormat} from "./paths.js"
+import { SceneFormat } from "./model.js"
 
 export type MessageToWorker = InitMessage | UpdateMessage
 

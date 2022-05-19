@@ -1,5 +1,5 @@
-import {InitMessage, MessageToMain, UpdateMessage} from "./filaments/messages.js"
-import {PathFormat, PolygonPath} from "./filaments/paths.js"
+import {Scene} from "./filaments/model.js"
+import {WorkerQueue} from "./filaments/queue.js"
 import {Boot, preloadImagesOfCssFile} from "./lib/boot.js"
 import {HTML} from "./lib/dom.js"
 
@@ -14,38 +14,23 @@ const showProgress = (() => {
     console.debug("booting...")
 
     // --- BOOT STARTS ---
-
     const boot = new Boot()
     boot.addObserver(boot => showProgress(boot.normalizedPercentage()))
     boot.registerProcess(preloadImagesOfCssFile("./bin/main.css"))
     await boot.waitForCompletion()
-
     // --- BOOT ENDS ---
 
-    const canvas: HTMLCanvasElement = HTML.create('canvas')
+    const canvas: HTMLCanvasElement = HTML.create('canvas', {
+        width: 2048,
+        height: 2048,
+        style: 'background-color: black;'
+    })
     const bitmapRenderingContext = canvas.getContext('bitmaprenderer')
-
-    const size = 2048
-    const worker = new Worker('bin/filaments/worker.js', {type: "module"})
-    worker.onmessage = event => {
-        const message: MessageToMain = event.data
-        bitmapRenderingContext.transferFromImageBitmap(message.bitmap)
-    }
-
-    const paths: PathFormat[] = [
-        new PolygonPath(4, 1, 512),
-        new PolygonPath(4, 11, 128)
-    ].map(path => path.serialize())
-
-    worker.postMessage({type: 'init', width: size, height: size} as InitMessage)
-    worker.postMessage({type: 'update', format: {paths}} as UpdateMessage)
-
-    canvas.width = 2048
-    canvas.height = 2048
-    canvas.style.width = '1024px'
-    canvas.style.height = '1024px'
-    canvas.style.backgroundColor = 'black'
     HTML.query('main').appendChild(canvas)
+
+    const renderer = new WorkerQueue(2048, 2048)
+    const imageBitmap = await renderer.render(new Scene().serialize())
+    bitmapRenderingContext.transferFromImageBitmap(imageBitmap)
 
     // prevent dragging entire document on mobile
     document.addEventListener('touchmove', (event: TouchEvent) => event.preventDefault(), {passive: false})
