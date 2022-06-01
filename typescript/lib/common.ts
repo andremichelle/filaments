@@ -3,6 +3,8 @@
 import {ValueMapping} from "./mapping.js"
 import {Random} from "./math"
 
+export type NoArgType<T> = { new(): T }
+
 export interface Terminable {
     terminate(): void
 }
@@ -139,6 +141,14 @@ export interface Value<T> {
 }
 
 export interface ObservableValue<T> extends Value<T>, Observable<T> {
+}
+
+export const ObservableValueVoid: ObservableValue<any> = {
+    addObserver: (observer: Observer<any>, notify: boolean): Terminable => TerminableVoid,
+    get: (): any => null,
+    removeObserver: (observer: Observer<any>): boolean => false,
+    set: (value: any): boolean => true,
+    terminate: (): void => null
 }
 
 export class ObservableValueImpl<T> implements ObservableValue<T> {
@@ -472,5 +482,30 @@ export class Events {
                              options?: AddEventListenerOptions): Terminable {
         target.addEventListener(type, listener, options)
         return {terminate: () => target.removeEventListener(type, listener, options)}
+    }
+
+    static configRepeatButton(button, callback): Terminable {
+        const mouseDownListener = () => {
+            let lastTime = Date.now()
+            let delay = 500.0
+            const repeat = () => {
+                if (!isNaN(lastTime)) {
+                    if (Date.now() - lastTime > delay) {
+                        lastTime = Date.now()
+                        delay *= 0.75
+                        callback()
+                    }
+                    requestAnimationFrame(repeat)
+                }
+            }
+            requestAnimationFrame(repeat)
+            callback()
+            window.addEventListener("mouseup", () => {
+                lastTime = NaN
+                delay = Number.MAX_VALUE
+            }, {once: true})
+        }
+        button.addEventListener("mousedown", mouseDownListener)
+        return {terminate: () => button.removeEventListener("mousedown", mouseDownListener)}
     }
 }

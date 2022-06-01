@@ -1,5 +1,4 @@
-import {Scene} from "./filaments/model.js"
-import {WorkerQueue} from "./filaments/queue.js"
+import {install} from "./filaments/controls.js"
 import {Boot, preloadImagesOfCssFile} from "./lib/boot.js"
 import {HTML} from "./lib/dom.js"
 
@@ -25,12 +24,9 @@ const showProgress = (() => {
         height: 2048,
         style: 'background-color: black;'
     })
-    const bitmapRenderingContext = canvas.getContext('bitmaprenderer')
-    HTML.query('main').appendChild(canvas)
+    install(canvas.getContext('bitmaprenderer'))
 
-    const renderer = new WorkerQueue(2048, 2048)
-    const imageBitmap = await renderer.render(new Scene().serialize())
-    bitmapRenderingContext.transferFromImageBitmap(imageBitmap)
+    HTML.query('main').appendChild(canvas)
 
     // prevent dragging entire document on mobile
     document.addEventListener('touchmove', (event: TouchEvent) => event.preventDefault(), {passive: false})
