@@ -1,4 +1,4 @@
-import {ObservableValue, ObservableValueImpl, Serializer} from "../lib/common.js"
+import {ObservableValue, ObservableValueImpl, Serializer, Terminable, Terminator} from "../lib/common.js"
 import {TAU} from "../lib/math.js"
 
 export interface Point {
@@ -7,6 +7,8 @@ export interface Point {
 }
 
 export type PathFormat = CirclePathFormat | PolygonPathFormat
+
+export type PathType = { new(): Path<any> }
 
 export interface SceneFormat {
     paths: PathFormat[]
@@ -55,7 +57,7 @@ export class Scene implements Serializer<SceneFormat> {
     }
 }
 
-export interface Path<FORMAT extends PathFormat> extends Serializer<FORMAT> {
+export interface Path<FORMAT extends PathFormat> extends Serializer<FORMAT>, Terminable {
     eval(phase: number, offset: number): Point
 }
 
@@ -66,12 +68,14 @@ export type CirclePathFormat = {
 }
 
 export class CirclePath implements Path<CirclePathFormat> {
+    private readonly terminator: Terminator = new Terminator()
+
     readonly frequency: ObservableValue<number>
     readonly radius: ObservableValue<number>
 
     constructor(frequency: number = 1, radius: number = 256) {
-        this.frequency = new ObservableValueImpl(frequency)
-        this.radius = new ObservableValueImpl(radius)
+        this.frequency = this.terminator.with(new ObservableValueImpl(frequency))
+        this.radius = this.terminator.with(new ObservableValueImpl(radius))
     }
 
     eval(phase: number, offset: number): Point {
@@ -96,6 +100,10 @@ export class CirclePath implements Path<CirclePathFormat> {
             radius: this.radius.get()
         }
     }
+
+    terminate(): void {
+        this.terminator.terminate()
+    }
 }
 
 export type PolygonPathFormat = {
@@ -107,16 +115,18 @@ export type PolygonPathFormat = {
 }
 
 export class PolygonPath implements Path<PolygonPathFormat> {
+    private readonly terminator: Terminator = new Terminator()
+
     readonly n: ObservableValue<number>
     readonly frequency: ObservableValue<number>
     readonly radius: ObservableValue<number>
     readonly resolution: ObservableValue<number>
 
     constructor(n: number = 3, frequency: number = 1, radius: number = 256, resolution: number = 0) {
-        this.n = new ObservableValueImpl(n)
-        this.frequency = new ObservableValueImpl(frequency)
-        this.radius = new ObservableValueImpl(radius)
-        this.resolution = new ObservableValueImpl(resolution) // zero is maximum
+        this.n = this.terminator.with(new ObservableValueImpl(n))
+        this.frequency = this.terminator.with(new ObservableValueImpl(frequency))
+        this.radius = this.terminator.with(new ObservableValueImpl(radius))
+        this.resolution = this.terminator.with(new ObservableValueImpl(resolution)) // zero is maximum
     }
 
     eval(phase: number, offset: number): Point {
@@ -154,5 +164,9 @@ export class PolygonPath implements Path<PolygonPathFormat> {
             radius: this.radius.get(),
             resolution: this.resolution.get()
         }
+    }
+
+    terminate(): void {
+        this.terminator.terminate()
     }
 }

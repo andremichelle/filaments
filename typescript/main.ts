@@ -22,11 +22,11 @@ const showProgress = (() => {
     const canvas: HTMLCanvasElement = HTML.create('canvas', {
         width: 2048,
         height: 2048,
-        style: 'background-color: black;'
+        style: 'background-color: #060606;'
     })
     install(canvas.getContext('bitmaprenderer'))
 
-    HTML.query('main').appendChild(canvas)
+    HTML.query('.canvas').appendChild(canvas)
 
     // prevent dragging entire document on mobile
     document.addEventListener('touchmove', (event: TouchEvent) => event.preventDefault(), {passive: false})
